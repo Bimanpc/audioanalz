@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Analyzer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #282c34;
+            color: white;
+            text-align: center;
+        }
+        canvas {
+            display: block;
+            margin: 0 auto;
+            border: 2px solid #61dafb;
+        }
+    </style>
+</head>
+<body>
+    <h1>Audio Analyzer</h1>
+    <p>Click the button to start analyzing audio</p>
+    <button onclick="startAnalyzing()">Start</button>
+    <canvas id="analyzer" width="800" height="300"></canvas>
+
+    <script>
+        const canvas = document.getElementById('analyzer');
+        const canvasContext = canvas.getContext('2d');
+        let audioContext;
+        let analyser;
+        let dataArray;
+        let bufferLength;
+
+        function startAnalyzing() {
+            // Get audio stream from user's microphone
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const source = audioContext.createMediaStreamSource(stream);
+
+                    analyser = audioContext.createAnalyser();
+                    analyser.fftSize = 2048;
+
+                    bufferLength = analyser.frequencyBinCount;
+                    dataArray = new Uint8Array(bufferLength);
+
+                    source.connect(analyser);
+                    visualize();
+                })
+                .catch(error => {
+                    alert('Microphone access denied!');
+                    console.error(error);
+                });
+        }
+
+        function visualize() {
+            requestAnimationFrame(visualize);
+
+            analyser.getByteFrequencyData(dataArray);
+
+            canvasContext.clearRect(0, 0, canvas.width, canvas.height);
+
+            const barWidth = (canvas.width / bufferLength) * 2.5;
+            let barHeight;
+            let x = 0;
+
+            for (let i = 0; i < bufferLength; i++) {
+                barHeight = dataArray[i] / 2;
+
+                const red = barHeight + 25;
+                const green = 250 * (i / bufferLength);
+                const blue = 50;
+
+                canvasContext.fillStyle = `rgb(${red},${green},${blue})`;
+                canvasContext.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+
+                x += barWidth + 1;
+            }
+        }
+    </script>
+</body>
+</html>
